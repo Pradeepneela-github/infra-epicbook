@@ -84,7 +84,7 @@ stages:
               export PATH="/opt/homebrew/bin:$PATH"
               cd $(TF_DIR)
               terraform plan \
-                -var="mysql_admin_password=$(MYSQL_ADMIN_PASSWORD)" \
+                -var="mysql_admin_password=$MYSQL_PWD" \
                 -out=tfplan
             displayName: 'terraform plan'
             env:
@@ -92,6 +92,7 @@ stages:
               ARM_CLIENT_SECRET: $(servicePrincipalKey)
               ARM_TENANT_ID: $(tenantId)
               ARM_SUBSCRIPTION_ID: $(subscriptionId)
+              MYSQL_PWD: $(MYSQL_ADMIN_PASSWORD)
 
   # ============================================================
   # STAGE 3 — Apply: create the actual Azure resources
@@ -130,13 +131,14 @@ stages:
                     cd $(TF_DIR)
                     terraform apply \
                       -auto-approve \
-                      -var="mysql_admin_password=$(MYSQL_ADMIN_PASSWORD)"
+                      -var="mysql_admin_password=$MYSQL_PWD"
                   displayName: 'terraform apply'
                   env:
                     ARM_CLIENT_ID: $(servicePrincipalId)
                     ARM_CLIENT_SECRET: $(servicePrincipalKey)
                     ARM_TENANT_ID: $(tenantId)
                     ARM_SUBSCRIPTION_ID: $(subscriptionId)
+                    MYSQL_PWD: $(MYSQL_ADMIN_PASSWORD)
 
                 - bash: |
                     export PATH="/opt/homebrew/bin:$PATH"
