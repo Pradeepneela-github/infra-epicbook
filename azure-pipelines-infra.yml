@@ -64,27 +64,6 @@ stages:
         steps:
 
           - checkout: self
-
-          - bash: |
-              echo "=== Working directory ==="
-              pwd
-
-              echo ""
-              echo "=== Contents of workspace root ==="
-              ls -la $(System.DefaultWorkingDirectory)
-
-              echo ""
-              echo "=== Full tree of all files ==="
-              find $(System.DefaultWorkingDirectory) -type f | sort
-
-              echo ""
-              echo "=== TF_DIR variable value ==="
-              echo "TF_DIR = $(TF_DIR)"
-
-              echo ""
-              echo "=== Does TF_DIR exist? ==="
-              ls -la $(TF_DIR) || echo "DOES NOT EXIST"
-            displayName: 'DEBUG — show repo structure'
           
           - bash: |
               export PATH="/opt/homebrew/bin:$PATH"
