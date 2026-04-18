@@ -22,6 +22,12 @@ variable "ssh_public_key_path" {
   default     = "~/.ssh/epicbook.pub"
 }
 
+variable "ssh_private_key_path" {
+  description = "Path to your SSH private key (copied to frontend VM for backend connectivity)"
+  type        = string
+  default     = "~/.ssh/epicbook"
+}
+
 variable "mysql_admin_password" {
   description = "MySQL administrator (root-level) password"
   type        = string
