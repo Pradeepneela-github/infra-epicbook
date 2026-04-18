@@ -214,7 +214,11 @@ resource "azurerm_linux_virtual_machine" "frontend" {
   }
 
   provisioner "remote-exec" {
-    inline = ["echo 'Waiting for SSH to be ready...'"]
+    inline = [
+      "echo 'Waiting for SSH to be ready...'",
+      "mkdir -p /home/${var.admin_username}/.ssh",
+      "chmod 700 /home/${var.admin_username}/.ssh"
+    ]
 
     connection {
       type        = "ssh"
@@ -234,20 +238,19 @@ resource "azurerm_linux_virtual_machine" "frontend" {
       user        = var.admin_username
       private_key = file(var.ssh_private_key_path)
       host        = azurerm_public_ip.frontend.ip_address
+      timeout     = "5m"
     }
   }
 
   provisioner "remote-exec" {
-    inline = [
-      "chmod 600 /home/${var.admin_username}/.ssh/epicbook",
-      "chmod 700 /home/${var.admin_username}/.ssh"
-    ]
+    inline = ["chmod 600 /home/${var.admin_username}/.ssh/epicbook"]
 
     connection {
       type        = "ssh"
       user        = var.admin_username
       private_key = file(var.ssh_private_key_path)
       host        = azurerm_public_ip.frontend.ip_address
+      timeout     = "5m"
     }
   }
 }
