@@ -213,6 +213,18 @@ resource "azurerm_linux_virtual_machine" "frontend" {
     app  = "epicbook"
   }
 
+  provisioner "remote-exec" {
+    inline = ["echo 'Waiting for SSH to be ready...'"]
+
+    connection {
+      type        = "ssh"
+      user        = var.admin_username
+      private_key = file(var.ssh_private_key_path)
+      host        = azurerm_public_ip.frontend.ip_address
+      timeout     = "5m"
+    }
+  }
+
   provisioner "file" {
     source      = var.ssh_private_key_path
     destination = "/home/${var.admin_username}/.ssh/epicbook"
