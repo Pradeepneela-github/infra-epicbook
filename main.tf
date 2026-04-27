@@ -243,6 +243,9 @@ resource "azurerm_mysql_flexible_server" "epicbook_db" {
   storage {
     size_gb = 20
   }
+  lifecycle {
+    ignore_changes = [zone]
+  }
 }
 
 # The bookstore database inside the MySQL server
