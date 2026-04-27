@@ -1,3 +1,70 @@
-<html><head><title>Object moved</title></head><body>
-<h2>Object moved to <a href="https://spsprodneu1.vssps.visualstudio.com/_signin?realm=dev.azure.com&amp;reply_to=https%3A%2F%2Fdev.azure.com%2FPradevops99%2FTheEpicBook-%2520Dual%2520Pipeline%2F_git%2FInfra-epicbook%3Fpath%3D%252Fazure-pipelines.yml&amp;redirect=1&amp;hid=04effcc1-cbd4-4d9f-8c6f-7854d24b8f25&amp;context=eyJodCI6MiwiaGlkIjoiNDkyMjNhZTctZmFlMS00NzVlLTkwNGItMzZkYjMwYmRmMGM1IiwicXMiOnt9LCJyciI6IiIsInZoIjoiIiwiY3YiOiIiLCJjcyI6IiJ90&amp;lltid=9614fc4f-6510-4cec-aefc-9cc31f8cf624#ctx=eyJTaWduSW5Db29raWVEb21haW5zIjpbImh0dHBzOi8vbG9naW4ubWljcm9zb2Z0b25saW5lLmNvbSIsImh0dHBzOi8vbG9naW4ubWljcm9zb2Z0b25saW5lLmNvbSJdfQ2">here</a>.</h2>
-</body></html>
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: 'Epicbook- Dual Pipelines'   # Using Agent Pool (selfhosted pipeline)
+
+variables:
+  TF_VERSION: '1.7.5'
+  SERVICE_CONNECTION: 'epicbook-azure-connection'
+  BACKEND_RG: 'tfstate-rg'
+  BACKEND_SA: 'epicbooktfstate99'
+  BACKEND_CONTAINER: 'tfstate'
+  BACKEND_KEY: 'epicbook.terraform.tfstate'
+
+stages:
+  - stage: InfraProvision
+    displayName: Provision Azure Infrastructure with Terraform
+    jobs:
+      - job: TerraformJob
+        displayName: Run Terraform Init Plan Apply
+        steps:
+
+          - task: TerraformInstaller@1
+            displayName: Install Terraform version $(TF_VERSION)
+            inputs:
+              terraformVersion: $(TF_VERSION)
+
+          - task: TerraformTaskV4@4
+            displayName: Terraform Init - Connect to Azure State Storage
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: $(SERVICE_CONNECTION)
+              backendAzureRmResourceGroupName: $(BACKEND_RG)
+              backendAzureRmStorageAccountName: $(BACKEND_SA)
+              backendAzureRmContainerName: $(BACKEND_CONTAINER)
+              backendAzureRmKey: $(BACKEND_KEY)
+
+          - task: TerraformTaskV4@4
+            displayName: Terraform Plan - Preview What Will Be Created
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              environmentServiceNameAzureRM: $(SERVICE_CONNECTION)
+
+          - task: TerraformTaskV4@4
+            displayName: Terraform Apply - Create All Azure Resources
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              environmentServiceNameAzureRM: $(SERVICE_CONNECTION)
+
+          - script: |
+              FRONTEND_IP=$(terraform output -raw app_public_ip)
+              BACKEND_IP=$(terraform output -raw backend_public_ip)
+              BACKEND_PRIVATE=$(terraform output -raw backend_private_ip)
+              MYSQL_HOST=$(terraform output -raw mysql_fqdn)
+              echo "================================================================"
+              echo "INFRASTRUCTURE PROVISIONING COMPLETE"
+              echo "================================================================"
+              echo "Frontend VM Public IP (users visit this in browser): $FRONTEND_IP"
+              echo "Backend VM Public IP  (Ansible connects here):       $BACKEND_IP"
+              echo "Backend VM Private IP (Nginx proxy upstream):        $BACKEND_PRIVATE"
+              echo "MySQL FQDN            (app DB connection string):    $MYSQL_HOST"
+              echo "================================================================"
+              echo "COPY ALL FOUR VALUES INTO THE APP PIPELINE VARIABLES BEFORE RUNNING IT"
+              echo "================================================================"
+            displayName: Print All Terraform Outputs
