@@ -4,7 +4,7 @@ trigger:
       - main
 
 pool:
-  name: 'Epicbook- Dual Pipelines'   # Using Agent Pool (selfhosted pipeline)
+  name: 'Default'
 
 variables:
   TF_VERSION: '1.7.5'
@@ -22,13 +22,13 @@ stages:
         displayName: Run Terraform Init Plan Apply
         steps:
 
-          - task: TerraformInstaller@1
+          - task: TerraformInstaller@0
             displayName: Install Terraform version $(TF_VERSION)
             inputs:
               terraformVersion: $(TF_VERSION)
 
-          - task: TerraformTaskV4@4
-            displayName: Terraform Init - Connect to Azure State Storage
+          - task: TerraformTaskV2@2
+            displayName: Terraform Init
             inputs:
               provider: 'azurerm'
               command: 'init'
@@ -38,33 +38,43 @@ stages:
               backendAzureRmContainerName: $(BACKEND_CONTAINER)
               backendAzureRmKey: $(BACKEND_KEY)
 
-          - task: TerraformTaskV4@4
+          - task: TerraformTaskV2@2
             displayName: Terraform Plan - Preview What Will Be Created
             inputs:
               provider: 'azurerm'
               command: 'plan'
               environmentServiceNameAzureRM: $(SERVICE_CONNECTION)
+            env:
+              TF_VAR_mysql_admin_password: $(TF_VAR_mysql_admin_password)
+              TF_VAR_ssh_public_key: $(TF_VAR_ssh_public_key)
 
-          - task: TerraformTaskV4@4
+          - task: TerraformTaskV2@2
             displayName: Terraform Apply - Create All Azure Resources
             inputs:
               provider: 'azurerm'
               command: 'apply'
               environmentServiceNameAzureRM: $(SERVICE_CONNECTION)
+            env:
+              TF_VAR_mysql_admin_password: $(TF_VAR_mysql_admin_password)
+              TF_VAR_ssh_public_key: $(TF_VAR_ssh_public_key)
 
-          - script: |
-              FRONTEND_IP=$(terraform output -raw app_public_ip)
-              BACKEND_IP=$(terraform output -raw backend_public_ip)
-              BACKEND_PRIVATE=$(terraform output -raw backend_private_ip)
-              MYSQL_HOST=$(terraform output -raw mysql_fqdn)
-              echo "================================================================"
-              echo "INFRASTRUCTURE PROVISIONING COMPLETE"
-              echo "================================================================"
-              echo "Frontend VM Public IP (users visit this in browser): $FRONTEND_IP"
-              echo "Backend VM Public IP  (Ansible connects here):       $BACKEND_IP"
-              echo "Backend VM Private IP (Nginx proxy upstream):        $BACKEND_PRIVATE"
-              echo "MySQL FQDN            (app DB connection string):    $MYSQL_HOST"
-              echo "================================================================"
-              echo "COPY ALL FOUR VALUES INTO THE APP PIPELINE VARIABLES BEFORE RUNNING IT"
-              echo "================================================================"
+          - task: Bash@3
             displayName: Print All Terraform Outputs
+            inputs:
+              targetType: inline
+              script: |
+                FRONTEND_IP=$(terraform output -raw app_public_ip)
+                BACKEND_IP=$(terraform output -raw backend_public_ip)
+                BACKEND_PRIVATE=$(terraform output -raw backend_private_ip)
+                MYSQL_HOST=$(terraform output -raw mysql_fqdn)
+                echo "========================================================"
+                echo "INFRASTRUCTURE PROVISIONING COMPLETE"
+                echo "========================================================"
+                echo "Frontend VM Public IP:  $FRONTEND_IP"
+                echo "Backend VM Public IP:   $BACKEND_IP"
+                echo "Backend VM Private IP:  $BACKEND_PRIVATE"
+                echo "MySQL FQDN:             $MYSQL_HOST"
+                echo "========================================================"
+            env:
+              TF_VAR_mysql_admin_password: $(TF_VAR_mysql_admin_password)
+              TF_VAR_ssh_public_key: $(TF_VAR_ssh_public_key)
