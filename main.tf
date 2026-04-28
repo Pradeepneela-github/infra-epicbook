@@ -265,3 +265,10 @@ resource "azurerm_mysql_flexible_server_firewall_rule" "allow_backend" {
   start_ip_address    = azurerm_public_ip.backend_pip.ip_address
   end_ip_address      = azurerm_public_ip.backend_pip.ip_address
 }
+
+resource "azurerm_mysql_flexible_server_configuration" "disable_ssl" {
+  name                = "require_secure_transport"
+  resource_group_name = azurerm_resource_group.epicbook.name
+  server_name         = azurerm_mysql_flexible_server.epicbook_db.name
+  value               = "OFF"
+}
